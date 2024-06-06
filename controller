@@ -1,0 +1,691 @@
+// Buatlah perfolder sesuai variabel key
+// absensi
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+class Absensi extends CI_Controller
+{
+    /*
+        $view berfungsi untuk membaca file view seperti read.php, create.php
+        dan edit.php dengan lokasi folder views/backend/v_admin/
+        */
+    private $view = "backend/v_absensi/";
+    //memanggil control Admin/index dalam keadaan refresh
+    private $redirect = "absensi";
+
+    public function __construct()
+    {
+        parent::__construct();
+        //control Admin menghubungkan model M_admin
+        $this->load->model('M_absensi');
+        $this->load->model('M_admin');
+        $this->load->model('M_mahasiswa');
+        $this->load->model('M_matakuliah');
+        $this->load->model('M_kelas');
+        IsAdmin();
+    }
+
+    function index()
+    {
+        if ($this->input->get('search')) {
+            $q = $this->M_absensi->search($this->input->get('search'));
+        } else {
+            $q = $this->M_absensi->GetAll();
+        }
+        $data = array(
+            'judul' => "Absensi",
+            'sub' => "Lihat Data Absensi",
+            'read' => $q
+        );
+        $this->template->load('templates/header', $this->view . 'read', $data);
+    }
+
+    public function create()
+    {
+        $data = array(
+            'judul' => "Absensi",
+            'sub' => "Tambah Data Absensi",
+            'admin' => $this->M_admin->GetAll(),    
+            'mahasiswa' => $this->M_mahasiswa->GetAll(),
+            'matkul' => $this->M_matakuliah->GetAll(),
+            'kelas' => $this->M_kelas->GetAll(),
+            'create' => ''
+        );
+        $this->template->load('templates/header', $this->view . 'create', $data);
+        $this->template->load('templates/footer', $this->view . 'create');
+    }
+
+    public function save()
+    {
+        $data = array(
+            'id_absensi' => $this->input->post('id_absensi'),
+            'id_admin' => $this->session->userdata('id_admin'),
+            'id_mahasiswa' => $this->input->post('id_mahasiswa'),
+            'id_matkul' => $this->input->post('id_matkul'),
+            'id_kelas' => $this->input->post('id_kelas'),
+            'tanggal_absensi' => $this->input->post('tanggal_absensi'),
+            'status' => $this->input->post('status'),
+        );
+        $this->M_absensi->save($data);
+        $this->session->set_flashdata('flash', 'ditambah');
+        //dengan $this->redirect artinya memanggil private $redirect = "Admin"
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function edit()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            'judul' => "ABSENSI",
+            'sub' => "Ubah Data Ansemsi",
+            'admin' => $this->M_admin->GetAll(),    
+            'mahasiswa' => $this->M_mahasiswa->GetAll(),
+            'matkul' => $this->M_matakuliah->GetAll(),
+            'kelas' => $this->M_kelas->GetAll(),
+            'edit' => $this->M_absensi->edit($kd)
+        );
+        $this->template->load('templates/header', $this->view . 'edit', $data);
+    }
+
+    public function update()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            'id_admin' => $this->session->userdata('id_admin'),
+            'id_mahasiswa' => $this->input->post('id_mahasiswa'),
+            'id_matkul' => $this->input->post('id_matkul'),
+            'id_kelas' => $this->input->post('id_kelas'),
+            'tanggal_absensi' => $this->input->post('tanggal_absensi'),
+            'status' => $this->input->post('status'),
+        );
+        $this->M_absensi->update($kd, $data);
+        $this->session->set_flashdata('flash', 'diubah');
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function delete()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            //data akan dihapus sesuai uri->segment(3) yang dipilih
+            'id_absensi' => $kd
+        );
+        $this->M_absensi->delete($data);
+        $this->session->set_flashdata('flash', 'dihapus');
+        redirect($this->redirect, 'refresh');
+    }
+}
+
+//admin
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Admin extends CI_Controller
+{
+  private $view = "backend/v_admin/";
+  private $redirect = "Admin";
+
+  public function __construct()
+  {
+    parent::__construct();
+    $this->load->model('M_admin');
+    IsAdmin();
+  }
+
+  function index()
+  {
+    if ($this->input->get('search')) {
+      $q = $this->M_admin->search($this->input->get('search'));
+    } else {
+      $q = $this->M_admin->GetAll();
+    }
+    $data = array(
+
+      'judul' => "ADMIN",
+      'sub' => "Lihat Data Admin",
+      'read' => $q
+    );
+    $this->template->load('templates/header', $this->view. 'read', $data);
+  }
+
+  public function create()
+  {
+    $data = array(
+      'judul' => "ADMIN",
+      'sub' => "Tambah Data Admin",
+      'create' => ''
+    );
+    $this->template->load('templates/header', $this->view. 'create', $data);
+  }
+
+  public function save()
+  {
+    $data = array(
+      'id_admin' => $this->input->post('id_admin'),
+      'nama_admin' => $this->input->post('nama_admin'),
+      'pswd_admin' => md5($this->input->post('pswd_admin')),
+    );
+    $this->M_admin->save($data);
+    $this->session->set_flashdata('flash', 'ditambah');
+    //dengan $this->redirect artinya memanggil private $redirect = "Admin"
+    redirect($this->redirect, 'refresh');
+  }
+
+  public function edit()
+  {
+    $kd = $this->uri->segment(3);
+    $data = array(
+      'judul' => "ADMIN",
+      'sub' => "Ubah Data Admin",
+      'edit' => $this->M_admin->edit($kd)
+    );
+    $this->template->load('templates/header', $this->view. 'edit', $data);
+  }
+
+  public function update()
+  {
+    $kd = $this->uri->segment(3);
+    $data = array(
+      /*
+            'nama_admin' =nama yang diambil dari fild pada tabel
+            $this->input->post('nama_admin') =nama yang diambil dari form
+            */
+      'nama_admin' => $this->input->post('nama_admin'),
+      'pswd_admin' => md5($this->input->post('pswd_admin')),
+    );
+    $this->M_admin->update($kd, $data);
+    $this->session->set_flashdata('flash', 'diubah');
+    redirect($this->redirect, 'refresh');
+  }
+
+  public function delete()
+  {
+    $kd = $this->uri->segment(3);
+    $data = array(
+      //data akan dihapus sesuai uri->segment(3) yang dipilih
+      'id_admin' => $kd
+    );
+    $this->M_admin->delete($data);
+    $this->session->set_flashdata('flash', 'dihapus');
+    redirect($this->redirect, 'refresh');
+  }
+}
+
+//Authorization
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Auth extends CI_Controller
+{
+
+  private $redirect   = "admin";
+
+  public function __construct()
+  {
+    parent::__construct();
+    //Load model 
+    $this->load->model('M_auth');
+  }
+
+  public function index()
+  {
+    $this->session->sess_destroy();
+    $data = array(
+      'login'    => ''
+    );
+    $this->load->view('backend/login', $data);
+  }
+
+  public function login()
+  {
+    $kd   = $this->input->post('id_admin');
+    $pwd  = md5($this->input->post('pswd_admin'));
+    $data = $this->M_auth->CekLogin('admin', 'id_admin', $kd);
+    //jika login 
+    if ($data['pswd_admin'] == $pwd and $data['id_admin'] == $kd) {
+      $array = array(
+        'id_admin'   => $data['id_admin'],
+        'nama_admin'  => $data['nama_admin'],
+        'IsAdmin'    => 1
+      );
+      $this->session->set_userdata($array);
+      redirect('Home', 'refresh');
+    } else {
+      echo "<script>alert('Username atau Password salah!');</script>";
+      redirect('Auth', 'refresh');
+    }
+  }
+
+  public function logout()
+  {
+    //data session akan di hancurkan 
+    $this->session->sess_destroy();
+    redirect('Auth', 'refresh');
+  }
+}
+
+//Dosen
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Dosen extends CI_Controller
+{
+    private $view = "backend/v_dosen/";
+    private $redirect = "dosen";
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('M_dosen');
+        IsAdmin();
+    }
+
+    function index()
+    {
+        if ($this->input->get('search')) {
+            $q = $this->M_dosen->search($this->input->get('search'));
+        } else {
+            $q = $this->M_dosen->GetAll();
+        }
+        $data = array(
+
+            'judul' => "DOSEN",
+            'sub' => "Lihat Data Dosen",
+            'read' => $q
+        );
+        $this->template->load('templates/header', $this->view . 'read', $data);
+    }
+
+    public function create()
+    {
+        $data = array(
+            'judul' => "DOSEN",
+            'sub' => "Tambah Data Dosen",
+            'create' => ''
+        );
+        $this->template->load('templates/header', $this->view . 'create', $data);
+    }
+
+    public function save()
+    {
+        $data = array(
+            'id_dosen' => $this->input->post('id_dosen'),
+            'nidn' => $this->input->post('nidn'),
+            'nama_dosen' => $this->input->post('nama_dosen'),
+            'email_dosen' => $this->input->post('email_dosen'),
+            'no_tlp_dosen' => $this->input->post('no_tlp_dosen'),
+            'alamat_dosen' => $this->input->post('alamat_dosen'),
+        );
+        $this->M_dosen->save($data);
+        $this->session->set_flashdata('flash', 'ditambah');
+        //dengan $this->redirect artinya memanggil private $redirect = "Admin"
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function edit()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            'judul' => "DOSEN",
+            'sub' => "Ubah Data Dosen",
+            'edit' => $this->M_dosen->edit($kd)
+        );
+        $this->template->load('templates/header', $this->view . 'edit', $data);
+    }
+
+    public function update()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            /*
+      'nama_admin' =nama yang diambil dari fild pada tabel
+      $this->input->post('nama_admin') =nama yang diambil dari form
+      */
+            'nidn' => $this->input->post('nidn'),
+            'nama_dosen' => $this->input->post('nama_dosen'),
+            'email_dosen' => $this->input->post('email_dosen'),
+            'no_tlp_dosen' => $this->input->post('no_tlp_dosen'),
+            'alamat_dosen' => $this->input->post('alamat_dosen'),
+
+        );
+        $this->M_dosen->update($kd, $data);
+        $this->session->set_flashdata('flash', 'diubah');
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function delete()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            //data akan dihapus sesuai uri->segment(3) yang dipilih
+            'id_dosen' => $kd
+        );
+        $this->M_dosen->delete($data);
+        $this->session->set_flashdata('flash', 'dihapus');
+        redirect($this->redirect, 'refresh');
+    }
+}
+
+//Home
+<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed'); 
+ 
+class Home extends CI_Controller { 
+
+  private $view = "backend/v_home/";
+  private $redirect   = "Home"; 
+ 
+  public function __construct(){ 
+    parent::__construct(); 
+    //mengaktifkan session dengan demikian halaman ini jika dipanggil kini membutuhkan session 
+    IsAdmin(); 
+  } 
+ 
+  public function index(){ 
+    
+    $data = array( 
+      'judul'  => "BERANDA", 
+      'sub'  => "Halaman Beranda" 
+    );  
+    $this->template->load('templates/header', $this->view . 'read', $data);
+  } 
+   
+}
+
+//kelas
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Kelas extends CI_Controller
+{
+    private $view = "backend/v_kelas/";
+    private $redirect = "kelas";
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->model('M_kelas');
+        IsAdmin();
+    }
+
+    function index()
+    {
+        if ($this->input->get('search')) {
+            $q = $this->M_kelas->search($this->input->get('search'));
+        } else {
+            $q = $this->M_kelas->GetAll();
+        }
+        $data = array(
+
+            'judul' => "KELAS",
+            'sub' => "Lihat Data Kelas",
+            'read' => $q
+        );
+        $this->template->load('templates/header', $this->view . 'read', $data);
+    }
+
+    public function create()
+    {
+        $data = array(
+            'judul' => "KELAS",
+            'sub' => "Tambah Data Kelas",
+            'create' => ''
+        );
+        $this->template->load('templates/header', $this->view . 'create', $data);
+    }
+
+    public function save()
+    {
+        $data = array(
+            'id_kelas' => $this->input->post('id_kelas'),
+            'kelas' => $this->input->post('kelas'),
+            'jumlah_mahasiswa' => $this->input->post('jumlah_mahasiswa'),
+
+        );
+        $this->M_kelas->save($data);
+        $this->session->set_flashdata('flash', 'ditambah');
+        //dengan $this->redirect artinya memanggil private $redirect = "Admin"
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function edit()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            'judul' => "Kelas",
+            'sub' => "Ubah Data Kelas",
+            'edit' => $this->M_kelas->edit($kd)
+        );
+        $this->template->load('templates/header', $this->view . 'edit', $data);
+    }
+
+    public function update()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            /*
+      'nama_admin' =nama yang diambil dari fild pada tabel
+      $this->input->post('nama_admin') =nama yang diambil dari form
+      */
+      'id_kelas' => $this->input->post('id_kelas'),      
+      'kelas' => $this->input->post('kelas'),
+            'jumlah_mahasiswa' => $this->input->post('jumlah_mahasiswa'),
+        );
+        $this->M_kelas->update($kd, $data);
+        $this->session->set_flashdata('flash', 'diubah');
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function delete()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            //data akan dihapus sesuai uri->segment(3) yang dipilih
+            'id_kelas' => $kd
+        );
+        $this->M_kelas->delete($data);
+        $this->session->set_flashdata('flash', 'dihapus');
+        redirect($this->redirect, 'refresh');
+    }
+}
+
+//Mahasiswa
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Mahasiswa extends CI_Controller
+{
+  private $view = "backend/v_mahasiswa/";
+  private $redirect = "mahasiswa";
+
+  public function __construct()
+  {
+    parent::__construct();
+    $this->load->model('M_mahasiswa');
+    IsAdmin();
+  }
+
+  function index()
+  {
+    if ($this->input->get('search')) {
+      $q = $this->M_mahasiswa->search($this->input->get('search'));
+    } else {
+      $q = $this->M_mahasiswa->GetAll();
+    }
+    $data = array(
+
+      'judul' => "MAHASISWA",
+      'sub' => "Lihat Data Mahasiswa",
+      'read' => $q
+    );
+    $this->template->load('templates/header', $this->view . 'read', $data);
+  }
+
+  public function create()
+  {
+    $data = array(
+      'judul' => "MAHASISWA",
+      'sub' => "Tambah Data Mahasiswa",
+      'create' => ''
+    );
+    $this->template->load('templates/header', $this->view . 'create', $data);
+  }
+
+  public function save()
+  {
+    $data = array(
+      'id_mahasiswa' => $this->input->post('id_admin'),
+      'nim' => $this->input->post('nim'),
+      'nama_mahasiswa' => $this->input->post('nama_mahasiswa'),
+      'email_mahasiswa' => $this->input->post('email_mahasiswa'),
+      'no_tlp_mahasiswa' => $this->input->post('no_tlp_mahasiswa'),
+      'alamat_mahasiswa' => $this->input->post('alamat_mahasiswa'),
+    );
+    $this->M_mahasiswa->save($data);
+    $this->session->set_flashdata('flash', 'ditambah');
+    //dengan $this->redirect artinya memanggil private $redirect = "Admin"
+    redirect($this->redirect, 'refresh');
+  }
+
+  public function edit()
+  {
+    $kd = $this->uri->segment(3);
+    $data = array(
+      'judul' => "MAHASISWA",
+      'sub' => "Ubah Data Mahasiswa",
+      'edit' => $this->M_mahasiswa->edit($kd)
+    );
+    $this->template->load('templates/header', $this->view . 'edit', $data);
+  }
+
+  public function update()
+  {
+    $kd = $this->uri->segment(3);
+    $data = array(
+      /*
+      'nama_admin' =nama yang diambil dari fild pada tabel
+      $this->input->post('nama_admin') =nama yang diambil dari form
+      */
+      'nim' => $this->input->post('nim'),
+      'nama_mahasiswa' => $this->input->post('nama_mahasiswa'),
+      'email_mahasiswa' => $this->input->post('email_mahasiswa'),
+      'no_tlp_mahasiswa' => $this->input->post('no_tlp_mahasiswa'),
+      'alamat_mahasiswa' => $this->input->post('alamat_mahasiswa'),
+
+    );
+    $this->M_mahasiswa->update($kd, $data);
+    $this->session->set_flashdata('flash', 'diubah');
+    redirect($this->redirect, 'refresh');
+  }
+
+  public function delete()
+  {
+    $kd = $this->uri->segment(3);
+    $data = array(
+      //data akan dihapus sesuai uri->segment(3) yang dipilih
+      'id_mahasiswa' => $kd
+    );
+    $this->M_mahasiswa->delete($data);
+    $this->session->set_flashdata('flash', 'dihapus');
+    redirect($this->redirect, 'refresh');
+  }
+}
+
+//matakuliah
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+class Matakuliah extends CI_Controller
+{
+    /*
+        $view berfungsi untuk membaca file view seperti read.php, create.php
+        dan edit.php dengan lokasi folder views/backend/v_admin/
+        */
+    private $view = "backend/v_matkul/";
+    //memanggil control Admin/index dalam keadaan refresh
+    private $redirect = "matakuliah";
+
+    public function __construct()
+    {
+        parent::__construct();
+        //control Admin menghubungkan model M_admin
+        $this->load->model('M_matakuliah');
+        $this->load->model('M_dosen');
+        IsAdmin();
+    }
+
+    function index()
+    {
+        if ($this->input->get('search')) {
+            $q = $this->M_matakuliah->search($this->input->get('search'));
+        } else {
+            $q = $this->M_matakuliah->GetAll();
+        }
+        $data = array(
+            'judul' => "Matakuliah",
+            'sub' => "Lihat Data Matakuliah",
+            'read' => $q
+        );
+            $this->template->load('templates/header', $this->view . 'read', $data);
+    }
+
+    public function create()
+    {
+        $data = array(
+            'judul' => "Matakuliah",
+            'sub' => "Tambah Data Matakuliah",
+            'matkul' => $this->M_matakuliah->GetAll(),
+            'dosen' => $this->M_dosen->GetAll(),
+            'create' => ''
+        );
+            $this->template->load('templates/header', $this->view . 'create', $data); 
+    }
+
+    public function save()
+    {
+        $data = array(
+            'id_matkul' => $this->input->post('id_matkul'),
+            'id_dosen' => $this->input->post('id_dosen'),
+            'nama_matkul' => $this->input->post('nama_matkul'),
+        );
+        $this->M_matakuliah->save($data);
+        $this->session->set_flashdata('flash', 'ditambahkan');
+        //dengan $this->redirect artinya memanggil private $redirect = "Admin"
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function edit()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            'judul' => "MATAKULIAH",
+            'sub' => "Ubah Data Matakuliah",
+            'matkul' => $this->M_matakuliah->GetAll(),
+            'dosen' => $this->M_dosen->GetAll(),
+            'edit' => $this->M_matakuliah->edit($kd)
+        );
+        $this->template->load('templates/header', $this->view . 'edit', $data);
+    }
+
+    public function update()
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+            'id_matkul' => $this->input->post('id_matkul'),
+            'id_dosen' => $this->input->post('id_dosen'),
+            'nama_matkul' => $this->input->post('nama_matkul'),
+        );
+        $this->M_matakuliah->update($kd, $data);
+        $this->session->set_flashdata('flash', 'diubah');
+        redirect($this->redirect, 'refresh');
+    }
+
+    public function delete($id_matkul)
+    {
+        $kd = $this->uri->segment(3);
+        $data = array(
+      //data akan dihapus sesuai uri->segment(3) yang dipilih
+      'id_matkul' => $kd
+         );
+        $this->M_matakuliah->delete($data);
+        $this->session->set_flashdata('flash', 'dihapus');
+        redirect ($this->redirect, 'refresh');
+    }
+}
